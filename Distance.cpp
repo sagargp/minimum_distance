@@ -17,8 +17,8 @@ pcl::PointXYZ o2;
 
 void  viewerOneOff ( pcl::visualization::PCLVisualizer& viewer)
 {
-  viewer.setBackgroundColor (0.5, 0.8, 1.0);
-  viewer.addLine(o1, o2, "line", 0);
+  viewer.setBackgroundColor (0.0, 0.0, 0.0);
+  viewer.addLine(o1, o2, 1.0, 0.0, 0.0, "line", 0);
   std::cout << "i only run once" << std::endl;
 }
 
@@ -33,17 +33,9 @@ int  main (int argc, char** argv)
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudF (new pcl::PointCloud<pcl::PointXYZRGB>);
   reader.read (argv[1], *cloudF);
 
-  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clouds(10);
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clouds;
+  clouds.reserve(10);
 
-  /*
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud0 (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1 (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2 (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud3 (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud4 (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud5 (new pcl::PointCloud<pcl::PointXYZ>);
-  */
-  
   for (size_t i=0; i < cloud->points.size();++i)
   {
     if (!(cloud->points[i].x > -.3 && cloud->points[i].x < .3))
@@ -130,10 +122,6 @@ int  main (int argc, char** argv)
     cloud_cluster->is_dense = true;
 
     std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
-    /*std::stringstream ss;
-    ss << "cloud_cluster_" << j << ".pcd";
-    writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster, false);
-    */
     clouds.push_back(cloud_cluster);
     j++;
   }
@@ -155,8 +143,8 @@ int  main (int argc, char** argv)
   float global_min = -1.0;
   float dist = 0.0;
   float x, y, z;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr c1 ();
-  pcl::PointCloud<pcl::PointXYZ>::Ptr c2 ();
+  pcl::PointCloud<pcl::PointXYZ>::Ptr c1;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr c2;
   
   for (int i = 0; i < clouds.size(); i++)
   {
@@ -176,59 +164,20 @@ int  main (int argc, char** argv)
             global_min = dist;
             c1 = clouds[i];
             c2 = clouds[j];
+            
+            o1.x = c1->points[c1_point].x;
+            o1.y = c1->points[c1_point].y;
+            o1.z = c1->points[c1_point].z;
+
+            o2.x = c1->points[c1_point].x;
+            o2.y = c1->points[c1_point].y;
+            o2.z = c1->points[c1_point].z;            
           }
         }
       }
     }
   }
-  
 
-  /*
-  pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_0.pcd", *cloud0);   ///////////////////////////////////////////////////
-  pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_1.pcd", *cloud1);   ///////////////////////////////////////////////////
-  pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_2.pcd", *cloud2);   ///////////////////////////////////////////////////
-  pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_3.pcd", *cloud3);   ///////////////////////////////////////////////////
-  pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_4.pcd", *cloud4);   ///////////////////////////////////////////////////
-  pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_5.pcd", *cloud5);   ///////////////////////////////////////////////////
-  
-  int counter[6];
-
-  counter[0] = cloud0->points.size();
-  counter[1] = cloud1->points.size();
-  counter[2] = cloud2->points.size();
-  counter[3] = cloud3->points.size();
-  counter[4] = cloud4->points.size();
-  counter[5] = cloud5->points.size();
-  float x,y,z,distance;
-  float low_distance=10;
-
-  for (size_t N=1; N<6; ++N)
-  {
-    for (size_t j=0; j < counter[0];++j)
-    {
-      for (size_t i=0; i < counter[4];++i)
-      {
-        x = ((cloud1->points[i].x)-(cloud2->points[j].x))*((cloud1->points[i].x)-(cloud2->points[j].x));
-        y = ((cloud1->points[i].y)-(cloud2->points[j].y))*((cloud1->points[i].y)-(cloud2->points[j].y));
-        z = ((cloud1->points[i].z)-(cloud2->points[j].z))*((cloud1->points[i].z)-(cloud2->points[j].z));
-        distance = sqrt(x+y+z);
-
-        if (distance< low_distance)
-        {
-          low_distance = distance;
-          o1.x = cloud1->points[i].x;
-          o1.y = cloud1->points[i].y;
-          o1.z = cloud1->points[i].z;
-          o2.x = cloud2->points[j].x;
-          o2.y = cloud2->points[j].y;
-          o2.z = cloud2->points[j].z;
-        }
-      }
-    }
-  }
-  std::cerr<<"Distance "<< low_distance <<std::endl;
-  */
-  
   pcl::visualization::CloudViewer viewer("Cloud Viewer");
 
   viewer.runOnVisualizationThreadOnce (viewerOneOff);
