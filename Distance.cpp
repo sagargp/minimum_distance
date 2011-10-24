@@ -31,15 +31,19 @@ int  main (int argc, char** argv)
   std::cout << "PointCloud before filtering has: " << cloud->points.size () << " data points." << std::endl; //*
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudF (new pcl::PointCloud<pcl::PointXYZRGB>);
-  reader.read ("group2_1.pcd", *cloudF);
+  reader.read (argv[1], *cloudF);
 
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clouds(10);
+
+  /*
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud0 (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1 (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2 (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud3 (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud4 (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud5 (new pcl::PointCloud<pcl::PointXYZ>);
-
+  */
+  
   for (size_t i=0; i < cloud->points.size();++i)
   {
     if (!(cloud->points[i].x > -.3 && cloud->points[i].x < .3))
@@ -71,10 +75,10 @@ int  main (int argc, char** argv)
   seg.setMaxIterations (100);
   seg.setDistanceThreshold (0.02);
 
+  // Segment the largest planar component from the remaining cloud until 30% of the points remain
   int i=0, nr_points = (int) cloud_filtered->points.size ();
   while (cloud_filtered->points.size () > 0.3 * nr_points)
   {
-    // Segment the largest planar component from the remaining cloud
     seg.setInputCloud(cloud_filtered);
     seg.segment (*inliers, *coefficients); //*
 
@@ -99,7 +103,7 @@ int  main (int argc, char** argv)
     extract.filter (*cloud_filtered); //*
     std::cerr <<" The Coefficients are: " << coefficients->values[0]<< " "<< coefficients->values[1]<< " "<< coefficients->values[2]<< " " << coefficients->values[3]<< " "<< std::endl;
   }
-
+  
   // Creating the KdTree object for the search method of the extraction
   pcl::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::KdTreeFLANN<pcl::PointXYZ>);
   tree->setInputCloud (cloud_filtered);
@@ -126,19 +130,67 @@ int  main (int argc, char** argv)
     cloud_cluster->is_dense = true;
 
     std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
-    std::stringstream ss;
+    /*std::stringstream ss;
     ss << "cloud_cluster_" << j << ".pcd";
     writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster, false);
+    */
+    clouds.push_back(cloud_cluster);
     j++;
   }
 
+  /* now find the min distance
+    global_min
+    minc1
+    minc2
+    
+    for each cloud c1
+      for each other cloud c2
+        d <-- find the min distance between any pair of points in c1 and c2
+        if d < global_min
+          global_min <-- d
+          minc1 = c1
+          minc2 = c2
+  */
+  
+  float global_min = -1.0;
+  float dist = 0.0;
+  float x, y, z;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr c1 ();
+  pcl::PointCloud<pcl::PointXYZ>::Ptr c2 ();
+  
+  for (int i = 0; i < clouds.size(); i++)
+  {
+    for (int j = i+1; j < clouds.size(); j++)
+    {
+      for (int c1_point = 0; c1_point < clouds[i]->points.size(); c1_point++)
+      {
+        for (int c2_point = 0; c2_point < clouds[j]->points.size(); c2_point++)
+        {
+          x = pow((clouds[i]->points[c1_point].x) - (clouds[j]->points[c2_point].x), 2);
+          y = pow((clouds[i]->points[c1_point].y) - (clouds[j]->points[c2_point].y), 2);
+          z = pow((clouds[i]->points[c1_point].z) - (clouds[j]->points[c2_point].z), 2);
+          
+          dist = sqrt(x + y + z);
+          
+          if (dist < global_min || global_min == -1.0) {
+            global_min = dist;
+            c1 = clouds[i];
+            c2 = clouds[j];
+          }
+        }
+      }
+    }
+  }
+  
+
+  /*
   pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_0.pcd", *cloud0);   ///////////////////////////////////////////////////
   pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_1.pcd", *cloud1);   ///////////////////////////////////////////////////
   pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_2.pcd", *cloud2);   ///////////////////////////////////////////////////
   pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_3.pcd", *cloud3);   ///////////////////////////////////////////////////
   pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_4.pcd", *cloud4);   ///////////////////////////////////////////////////
   pcl::io::loadPCDFile<pcl::PointXYZ> ("cloud_cluster_5.pcd", *cloud5);   ///////////////////////////////////////////////////
-
+  
   int counter[6];
 
   counter[0] = cloud0->points.size();
@@ -174,54 +226,32 @@ int  main (int argc, char** argv)
       }
     }
   }
-
   std::cerr<<"Distance "<< low_distance <<std::endl;
-
+  */
+  
   pcl::visualization::CloudViewer viewer("Cloud Viewer");
 
   viewer.runOnVisualizationThreadOnce (viewerOneOff);
-  //viewer.runOnVisualizationThreadOnce (viewerOneOff);
 
   int xx;
   while(1)
   {
-    //viewer.showCloud(0, "cloud1");
     cin >> xx;
-
+    
     switch (xx)
     {
-      case 0:
-        viewer.showCloud(cloud0, "cloud0");
+      case -1:
+        viewer.showCloud(cloudF, "Full cloud");
         break;
-
-      case 1:
-        viewer.showCloud(cloud1,"cloud1");
-        break;
-
-      case 2:
-        viewer.showCloud(cloud2, "cloud2");
-        break;
-    
-      case 3:
-        viewer.showCloud(cloud3,"cloud3");
-        break;
-
-      case 4:
-        viewer.showCloud(cloud4, "cloud4");
-        break;
-
-      case 5:
-        viewer.showCloud(cloud5,"cloud5");
-        break;
-
+      
       default:
-        viewer.showCloud(cloudF,"cloudF");
+        viewer.showCloud(clouds[xx]);
         break;
+    }
   }
 
   while (!viewer.wasStopped ())
   {
   }
-
-  return (0);
+  return 0;
 }
