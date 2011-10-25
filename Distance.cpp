@@ -14,13 +14,39 @@
 
 pcl::PointXYZ o1;
 pcl::PointXYZ o2;
+std::vector<pcl::PointXYZ> labels;
+ 
 
 void  viewerOneOff ( pcl::visualization::PCLVisualizer& viewer)
 {
-  viewer.setBackgroundColor (0.0, 0.0, 0.0);
-  viewer.addLine(o1, o2, 1.0, 0.0, 0.0, "line", 0);
-  std::cout << "i only run once" << std::endl;
+//  pcl::visualization::CloudViewer viewer("Cloud Viewer");
+	
+  	viewer.setBackgroundColor (0.0, 0.0, 0.0);
+  	viewer.addArrow(o1, o2,1.0,0.5,0.3, "line", 0);
+	
+  
 }
+
+
+void label (pcl::visualization::PCLVisualizer& viewer)
+{
+
+	
+	for(size_t i = 0; i < labels.size(); i++)
+	{
+	labels[i].z = labels[i].z - .05;
+	char f[5];
+	sprintf(f,"%d",i);
+	viewer.addText3D (f, labels[i], 0.02,1,1,1,f,0);
+	std::cerr << "WTH"<<std::endl;
+
+	}
+
+  	
+
+
+}
+
 
 int  main (int argc, char** argv)
 {
@@ -33,12 +59,15 @@ int  main (int argc, char** argv)
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudF (new pcl::PointCloud<pcl::PointXYZRGB>);
   reader.read (argv[1], *cloudF);
 
+labels.reserve(10);
+
+
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clouds;
   clouds.reserve(10);
 
   for (size_t i=0; i < cloud->points.size();++i)
   {
-    if (!(cloud->points[i].x > -.3 && cloud->points[i].x < .3))
+    if (!(cloud->points[i].x > -.3 && cloud->points[i].x < .3))///Bounding
     {
       cloud->points[i].x = 0;
       cloud->points[i].y = 0;
@@ -123,29 +152,19 @@ int  main (int argc, char** argv)
 
     std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
     clouds.push_back(cloud_cluster);
+    labels.push_back(cloud_cluster->points[0]);
     j++;
   }
 
-  /* now find the min distance
-    global_min
-    minc1
-    minc2
-    
-    for each cloud c1
-      for each other cloud c2
-        d <-- find the min distance between any pair of points in c1 and c2
-        if d < global_min
-          global_min <-- d
-          minc1 = c1
-          minc2 = c2
-  */
+  
   
   float global_min = -1.0;
   float dist = 0.0;
   float x, y, z;
   pcl::PointCloud<pcl::PointXYZ>::Ptr c1;
   pcl::PointCloud<pcl::PointXYZ>::Ptr c2;
-  
+  //pcl::visualization::PCLVisualizer::addText3D	
+
   for (int i = 0; i < clouds.size(); i++)
   {
     for (int j = i+1; j < clouds.size(); j++)
@@ -169,9 +188,9 @@ int  main (int argc, char** argv)
             o1.y = c1->points[c1_point].y;
             o1.z = c1->points[c1_point].z;
 
-            o2.x = c1->points[c1_point].x;
-            o2.y = c1->points[c1_point].y;
-            o2.z = c1->points[c1_point].z;            
+            o2.x = c2->points[c2_point].x;
+            o2.y = c2->points[c2_point].y;
+            o2.z = c2->points[c2_point].z;            
           }
         }
       }
@@ -181,7 +200,8 @@ int  main (int argc, char** argv)
   pcl::visualization::CloudViewer viewer("Cloud Viewer");
 
   viewer.runOnVisualizationThreadOnce (viewerOneOff);
-
+  viewer.showCloud(cloudF, "Full cloud");
+  viewer.runOnVisualizationThreadOnce (label);	
   int xx;
   while(1)
   {
@@ -194,7 +214,10 @@ int  main (int argc, char** argv)
         break;
       
       default:
-        viewer.showCloud(clouds[xx]);
+	char f[5];
+	sprintf(f,"%d",xx);
+        viewer.showCloud(clouds[xx], f);
+	
         break;
     }
   }
