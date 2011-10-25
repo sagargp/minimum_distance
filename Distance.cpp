@@ -18,7 +18,8 @@ pcl::PointXYZ o2;
 void  viewerOneOff ( pcl::visualization::PCLVisualizer& viewer)
 {
   viewer.setBackgroundColor (0.0, 0.0, 0.0);
-  viewer.addArrow(o1, o2, 1.0, 0.0, 0.0, "line", 0);
+	viewer.removeShape("line", 0);
+	viewer.addArrow(o1, o2, 1.0, 0.0, 0.0, "line", 0);
 }
 
 double findDistance(pcl::PointCloud<pcl::PointXYZ>::Ptr c1, pcl::PointCloud<pcl::PointXYZ>::Ptr c2)
@@ -197,7 +198,6 @@ int  main (int argc, char** argv)
 //	cout << "Min dist = " << global_min << endl;
   pcl::visualization::CloudViewer viewer("Cloud Viewer");
 
-  viewer.runOnVisualizationThreadOnce (viewerOneOff);
 	viewer.showCloud(cloudF, "Full cloud");
 
   int xx, yy;
@@ -211,6 +211,8 @@ int  main (int argc, char** argv)
 		
 		cout << "Finding distance...";
 		cout << findDistance(clouds[xx], clouds[yy]) << endl;
+		
+		viewer.runOnVisualizationThreadOnce (viewerOneOff);
   }
 
   while (!viewer.wasStopped ())
