@@ -18,9 +18,40 @@ pcl::PointXYZ o2;
 void  viewerOneOff ( pcl::visualization::PCLVisualizer& viewer)
 {
   viewer.setBackgroundColor (0.0, 0.0, 0.0);
-  viewer.addLine(o1, o2, 1.0, 0.0, 0.0, "line", 0);
-  std::cout << "i only run once" << std::endl;
+  viewer.addArrow(o1, o2, 1.0, 0.0, 0.0, "line", 0);
 }
+
+double findDistance(pcl::PointCloud<pcl::PointXYZ>::Ptr c1, pcl::PointCloud<pcl::PointXYZ>::Ptr c2)
+{
+  float min = -1.0;
+	float dist = 0.0;
+  float x, y, z;
+  
+	for (int c1_point = 0; c1_point < c1->points.size(); c1_point++)
+	{
+		for (int c2_point = 0; c2_point < c2->points.size(); c2_point++)
+		{
+		  x = pow((c1->points[c1_point].x) - (c2->points[c2_point].x), 2);
+		  y = pow((c1->points[c1_point].y) - (c2->points[c2_point].y), 2);
+		  z = pow((c1->points[c1_point].z) - (c2->points[c2_point].z), 2);
+		  
+		  dist = sqrt(x + y + z);
+		  
+		  if (dist < min || min == -1.0) {
+		    min = dist;
+		    
+				o1.x = c1->points[c1_point].x;
+		    o1.y = c1->points[c1_point].y;
+		    o1.z = c1->points[c1_point].z;
+		
+		    o2.x = c2->points[c2_point].x;
+		    o2.y = c2->points[c2_point].y;
+		    o2.z = c2->points[c2_point].z;            
+		  }
+		}
+	}
+	return min;
+} 
 
 int  main (int argc, char** argv)
 {
@@ -126,77 +157,60 @@ int  main (int argc, char** argv)
     j++;
   }
 
-  /* now find the min distance
-    global_min
-    minc1
-    minc2
-    
-    for each cloud c1
-      for each other cloud c2
-        d <-- find the min distance between any pair of points in c1 and c2
-        if d < global_min
-          global_min <-- d
-          minc1 = c1
-          minc2 = c2
-  */
-  
-  float global_min = -1.0;
-  float dist = 0.0;
-  float x, y, z;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr c1;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr c2;
-  
-  for (int i = 0; i < clouds.size(); i++)
-  {
-    for (int j = i+1; j < clouds.size(); j++)
-    {
-      for (int c1_point = 0; c1_point < clouds[i]->points.size(); c1_point++)
-      {
-        for (int c2_point = 0; c2_point < clouds[j]->points.size(); c2_point++)
-        {
-          x = pow((clouds[i]->points[c1_point].x) - (clouds[j]->points[c2_point].x), 2);
-          y = pow((clouds[i]->points[c1_point].y) - (clouds[j]->points[c2_point].y), 2);
-          z = pow((clouds[i]->points[c1_point].z) - (clouds[j]->points[c2_point].z), 2);
-          
-          dist = sqrt(x + y + z);
-          
-          if (dist < global_min || global_min == -1.0) {
-            global_min = dist;
-            c1 = clouds[i];
-            c2 = clouds[j];
-            
-            o1.x = c1->points[c1_point].x;
-            o1.y = c1->points[c1_point].y;
-            o1.z = c1->points[c1_point].z;
-
-            o2.x = c1->points[c1_point].x;
-            o2.y = c1->points[c1_point].y;
-            o2.z = c1->points[c1_point].z;            
-          }
-        }
-      }
-    }
-  }
-
+//  float global_min = -1.0;
+//  float dist = 0.0;
+//  float x, y, z;
+//  pcl::PointCloud<pcl::PointXYZ>::Ptr c1;
+//  pcl::PointCloud<pcl::PointXYZ>::Ptr c2;
+//  
+//  for (int i = 0; i < clouds.size(); i++)
+//  {
+//    for (int j = i+1; j < clouds.size(); j++)
+//    {
+//      for (int c1_point = 0; c1_point < clouds[i]->points.size(); c1_point++)
+//      {
+//        for (int c2_point = 0; c2_point < clouds[j]->points.size(); c2_point++)
+//        {
+//          x = pow((clouds[i]->points[c1_point].x) - (clouds[j]->points[c2_point].x), 2);
+//          y = pow((clouds[i]->points[c1_point].y) - (clouds[j]->points[c2_point].y), 2);
+//          z = pow((clouds[i]->points[c1_point].z) - (clouds[j]->points[c2_point].z), 2);
+//          
+//          dist = sqrt(x + y + z);
+//          
+//          if (dist < global_min || global_min == -1.0) {
+//            global_min = dist;
+//            c1 = clouds[i];
+//            c2 = clouds[j];
+//            
+//            o1.x = c1->points[c1_point].x;
+//            o1.y = c1->points[c1_point].y;
+//            o1.z = c1->points[c1_point].z;
+//
+//            o2.x = c2->points[c2_point].x;
+//            o2.y = c2->points[c2_point].y;
+//            o2.z = c2->points[c2_point].z;            
+//          }
+//        }
+//      }
+//    }
+//  }
+//	cout << "Min dist = " << global_min << endl;
   pcl::visualization::CloudViewer viewer("Cloud Viewer");
 
   viewer.runOnVisualizationThreadOnce (viewerOneOff);
+	viewer.showCloud(cloudF, "Full cloud");
 
-  int xx;
+  int xx, yy;
   while(1)
   {
-    cin >> xx;
-    
-    switch (xx)
-    {
-      case -1:
-        viewer.showCloud(cloudF, "Full cloud");
-        break;
-      
-      default:
-        viewer.showCloud(clouds[xx]);
-        break;
-    }
+    cout << "Enter the label of the first cloud: ";
+		cin >> xx;
+	
+		cout << "Enter the label of the second cloud: ";
+		cin >> yy;
+		
+		cout << "Finding distance...";
+		cout << findDistance(clouds[xx], clouds[yy]) << endl;
   }
 
   while (!viewer.wasStopped ())
