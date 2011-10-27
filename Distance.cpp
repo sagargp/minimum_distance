@@ -42,7 +42,7 @@ double findDistance(pcl::PointCloud<pcl::PointXYZ>::Ptr c1, pcl::PointCloud<pcl:
 		  if (dist < min || min == -1.0) {
 		    min = dist;
 		    
-				o1.x = c1->points[c1_point].x;
+		    o1.x = c1->points[c1_point].x;
 		    o1.y = c1->points[c1_point].y;
 		    o1.z = c1->points[c1_point].z;
 		
@@ -93,13 +93,22 @@ int  main (int argc, char** argv)
     }
   }
 
+	
+
   // Create the filtering object: downsample the dataset using a leaf size of 1cm
   pcl::VoxelGrid<pcl::PointXYZ> vg;
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+  //pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_color_filtered (new pcl::PointCloud<pcl::PointXYZRGB>);	
   vg.setInputCloud (cloud);
   vg.setLeafSize (0.001f, 0.001f, 0.001f);
   vg.filter (*cloud_filtered);
-  std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl; //*
+	//cloud_filtered = cloud;
+  std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl;
+
+
+	pcl::visualization::CloudViewer viewer("Cloud Viewer");
+
+
 
   // Create the segmentation object for the planar model and set all the parameters
   pcl::SACSegmentation<pcl::PointXYZ> seg;
@@ -108,11 +117,12 @@ int  main (int argc, char** argv)
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ> ());
   pcl::PCDWriter writer;
   
+  
   seg.setOptimizeCoefficients (true);
   seg.setModelType (pcl::SACMODEL_PLANE);
   seg.setMethodType (pcl::SAC_RANSAC);
   seg.setMaxIterations (100);
-  seg.setDistanceThreshold (0.02);
+  seg.setDistanceThreshold (0.008);
 
   // Segment the largest planar component from the remaining cloud until 30% of the points remain
   int i=0, nr_points = (int) cloud_filtered->points.size ();
@@ -150,7 +160,7 @@ int  main (int argc, char** argv)
   std::vector<pcl::PointIndices> cluster_indices;
   pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
   ec.setClusterTolerance (0.02); // 2cm
-  ec.setMinClusterSize (10);
+  ec.setMinClusterSize (100);
   ec.setMaxClusterSize (40000);
   ec.setSearchMethod (tree);
   ec.setInputCloud( cloud_filtered);
@@ -174,11 +184,26 @@ int  main (int argc, char** argv)
     j++;
   }
 
-  pcl::visualization::CloudViewer viewer("Cloud Viewer");
 
+ // pcl::visualization::CloudViewer viewer("Cloud Viewer");//Initialized above
+
+	//viewer.showCloud(cloudF, "Full cloud");
 	viewer.showCloud(cloudF, "Full cloud");
   viewer.runOnVisualizationThreadOnce (label);
 	
+
+
+
+viewer.showCloud(clouds[0], "Full cloud21");
+viewer.showCloud(clouds[1], "Full cloud32");
+viewer.showCloud(clouds[2], "Full cloud23");
+viewer.showCloud(clouds[3], "Full cloud34");
+viewer.showCloud(clouds[4], "Full cloud25");
+viewer.showCloud(clouds[5], "Full cloud36");
+viewer.showCloud(clouds[6], "Full cloud27");
+viewer.showCloud(clouds[7], "Full cloud38");
+
+
   int xx, yy;
   while(1)
   {
