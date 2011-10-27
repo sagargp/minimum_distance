@@ -167,6 +167,7 @@ int  main (int argc, char** argv)
   ec.extract (cluster_indices);
 
   int j = 0;
+
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
   {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
@@ -185,23 +186,19 @@ int  main (int argc, char** argv)
   }
 
 
- // pcl::visualization::CloudViewer viewer("Cloud Viewer");//Initialized above
-
-	//viewer.showCloud(cloudF, "Full cloud");
 	viewer.showCloud(cloudF, "Full cloud");
-  viewer.runOnVisualizationThreadOnce (label);
+  	viewer.runOnVisualizationThreadOnce (label);
 	
+ char c_name[] = "Cloud No: ";
+ char cloud_name [20];
+ std::cerr<<"Total Clusters: "<<j<<std::endl;
 
+	for (size_t k = 0; k < j ; k++)
+	{
+		std::sprintf(cloud_name,"%s%d",c_name,k);
+		viewer.showCloud(clouds[k], cloud_name);
 
-
-viewer.showCloud(clouds[0], "Full cloud21");
-viewer.showCloud(clouds[1], "Full cloud32");
-viewer.showCloud(clouds[2], "Full cloud23");
-viewer.showCloud(clouds[3], "Full cloud34");
-viewer.showCloud(clouds[4], "Full cloud25");
-viewer.showCloud(clouds[5], "Full cloud36");
-viewer.showCloud(clouds[6], "Full cloud27");
-viewer.showCloud(clouds[7], "Full cloud38");
+	}
 
 
   int xx, yy;
