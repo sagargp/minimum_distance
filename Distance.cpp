@@ -12,9 +12,9 @@
 #include <math.h>
 #include <pcl/visualization/cloud_viewer.h>
 
-pcl::PointXYZ o1;
-pcl::PointXYZ o2;
-std::vector<pcl::PointXYZ> labels;
+pcl::PointXYZRGB o1;
+pcl::PointXYZRGB o2;
+std::vector<pcl::PointXYZRGB> labels;
 
 void  viewerOneOff ( pcl::visualization::PCLVisualizer& viewer)
 {
@@ -23,7 +23,7 @@ void  viewerOneOff ( pcl::visualization::PCLVisualizer& viewer)
 	viewer.addArrow(o1, o2, 1.0, 0.0, 0.0, "line", 0);
 }
 
-double findDistance(pcl::PointCloud<pcl::PointXYZ>::Ptr c1, pcl::PointCloud<pcl::PointXYZ>::Ptr c2)
+double findDistance(pcl::PointCloud<pcl::PointXYZRGB>::Ptr c1, pcl::PointCloud<pcl::PointXYZRGB>::Ptr c2)
 {
   float min = -1.0;
   float dist = 0.0;
@@ -62,7 +62,7 @@ void label (pcl::visualization::PCLVisualizer& viewer)
 	  labels[i].z = labels[i].z - .05;
 	  char f[5];
 	  sprintf(f,"%d",i);
-	  viewer.addText3D (f, labels[i], 0.02,1,1,1,f,0);
+	  viewer.addText3D (f, labels[i], 0.02,0,0,0,f,0);
 	}
 }
 
@@ -70,51 +70,52 @@ int  main (int argc, char** argv)
 {
   // Read in the cloud data
   pcl::PCDReader reader;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+  reader.read (argv[1], *RGBcloud);
 
-  reader.read (argv[1], *cloud);
-
-  std::cout << "PointCloud before filtering has: " << cloud->points.size () << " data points." << std::endl; //*
+  std::cout << "RGBPointCloud before filtering has: " << RGBcloud->points.size () << " data points." << std::endl; //*
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudF (new pcl::PointCloud<pcl::PointXYZRGB>);
   reader.read (argv[1], *cloudF);
 
-  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clouds;
+
+//  pcl::visualization::CloudViewer viewer("Cloud Viewer");
+
+  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> clouds;
   clouds.reserve(10);
   labels.reserve(10);
 
-  for (size_t i=0; i < cloud->points.size();++i)
+  for (size_t i=0; i < RGBcloud->points.size();++i)
   {
-    if (!(cloud->points[i].x > -.3 && cloud->points[i].x < .3))///Bounding
+    if (!((RGBcloud->points[i].x > -.35 && RGBcloud->points[i].x < .35) && (RGBcloud->points[i].y > -.35 && RGBcloud->points[i].y < .35)))///Bounding
     {
-      cloud->points[i].x = 0;
-      cloud->points[i].y = 0;
-      cloud->points[i].z = 0;
+      RGBcloud->points[i].x = 0;
+      RGBcloud->points[i].y = 0;
+      RGBcloud->points[i].z = 0;
     }
   }
-
-	
-
+  
+ 
   // Create the filtering object: downsample the dataset using a leaf size of 1cm
-  pcl::VoxelGrid<pcl::PointXYZ> vg;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::VoxelGrid<pcl::PointXYZRGB> vg;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGB>);
   //pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_color_filtered (new pcl::PointCloud<pcl::PointXYZRGB>);	
-  vg.setInputCloud (cloud);
+  vg.setInputCloud (RGBcloud);
   vg.setLeafSize (0.001f, 0.001f, 0.001f);
   vg.filter (*cloud_filtered);
 	//cloud_filtered = cloud;
   std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl;
 
 
-	pcl::visualization::CloudViewer viewer("Cloud Viewer");
+	//pcl::visualization::CloudViewer viewer("Cloud Viewer");
 
 
 
   // Create the segmentation object for the planar model and set all the parameters
-  pcl::SACSegmentation<pcl::PointXYZ> seg;
+  pcl::SACSegmentation<pcl::PointXYZRGB> seg;
   pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ> ());
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZRGB> ());
   pcl::PCDWriter writer;
   
   
@@ -122,7 +123,7 @@ int  main (int argc, char** argv)
   seg.setModelType (pcl::SACMODEL_PLANE);
   seg.setMethodType (pcl::SAC_RANSAC);
   seg.setMaxIterations (100);
-  seg.setDistanceThreshold (0.008);
+  seg.setDistanceThreshold (0.0085);//lesser the values, more points seep into the table
 
   // Segment the largest planar component from the remaining cloud until 30% of the points remain
   int i=0, nr_points = (int) cloud_filtered->points.size ();
@@ -138,7 +139,7 @@ int  main (int argc, char** argv)
     }
 
     // Extract the planar inliers from the input cloud
-    pcl::ExtractIndices<pcl::PointXYZ> extract;
+    pcl::ExtractIndices<pcl::PointXYZRGB> extract;
     extract.setInputCloud (cloud_filtered);
     extract.setIndices (inliers);
     extract.setNegative (false);
@@ -146,34 +147,141 @@ int  main (int argc, char** argv)
     // Write the planar inliers to disk
     extract.filter (*cloud_plane); //*
     std::cout << "PointCloud representing the planar component: " << cloud_plane->points.size () << " data points." << std::endl;
-
+	//viewer.showCloud(cloud_plane, "cloud_name");
+	//std::cin.get();
     // Remove the planar inliers, extract the rest
     extract.setNegative (true);
     extract.filter (*cloud_filtered); //*
     std::cerr <<" The Coefficients are: " << coefficients->values[0]<< " "<< coefficients->values[1]<< " "<< coefficients->values[2]<< " " << coefficients->values[3]<< " "<< std::endl;
   }
+
+//pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered2 (new pcl::PointCloud<pcl::PointXYZRGB>);
+	//cloud_filtered2 = cloud_filtered;
+
+
+////////////////////////Table has been awesomely removed ///////////////////////
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr Rcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr Gcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr Bcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr Ycloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+
+
+	//Rcloud=cloud_filtered;
+	//Gcloud=cloud_filtered;
+	//Bcloud=cloud_filtered;
+	//Rcloud->points.resize(cloud_filtered->height * cloud_filtered->width);
+
+std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl;
+   for (size_t i=0; i < cloud_filtered->points.size();++i)//red and yellow extraction
+  {
+    //if (!(int(cloud_filtered->points[i].r) > int(cloud_filtered->points[i].g) && int(cloud_filtered->points[i].r) > int(cloud_filtered->points[i].b)))///Bounding
+    //{
+      
+     	//cloud_filtered->points[i].r = 0;
+      //cloud_filtered->points[i].g = 0;
+     // cloud_filtered->points[i].b = 0;
+	cloud_filtered->erase(cloud_filtered->begin() + i);
+ 
+	
+  //  }
+
+  }
+
+   std::cout << "PointCloud after Red filtering: " << cloud_filtered->points.size ()  << " data points." << std::endl;
+
+  Ycloud  =  Rcloud;
+
+/*
+   for (size_t i=0; i < cloud_filtered->points.size();++i)//Red extraction
+  {
+    if ((Rcloud->points[i].r > Rcloud->points[i].g && (int(Rcloud->points[i].g) - int(Rcloud->points[i].b)) > 30 ))///Bounding
+    {
+      Rcloud->points[i].r = 0;
+      Rcloud->points[i].g = 0;
+      Rcloud->points[i].b = 0;
+      Rcloud->points[i].x = 0;
+      Rcloud->points[i].y = 0;
+      Rcloud->points[i].z = 0;
+    }
+  }
+
+   
+
+ for (size_t i=0; i < cloud_filtered->points.size();++i)//yellow extraction
+  {
+    if (!(Rcloud->points[i].r > Rcloud->points[i].g && (int(Rcloud->points[i].g) - int(Rcloud->points[i].b)) > 30 ))///Bounding
+    {
+      Ycloud->points[i].r = 0;Rcloud
+      Ycloud->points[i].g = 0;
+      Ycloud->points[i].b = 0;
+      Ycloud->points[i].x = 0;
+      Ycloud->points[i].y = 0;
+      Ycloud->points[i].z = 0;
+    }
+  }
   
-  // Creating the KdTree object for the search method of the extraction
-  pcl::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::KdTreeFLANN<pcl::PointXYZ>);
-  tree->setInputCloud (cloud_filtered);
+
+  
+
+
+  for (size_t i=0; i < cloud_filtered->points.size();++i)///green extraction
+  {
+    if (!(cloud_filtered->points[i].g > cloud_filtered->points[i].r && cloud_filtered->points[i].g > cloud_filtered->points[i].b))///Bounding
+    {
+      Gcloud->points[i].r = 0;
+      Gcloud->points[i].g = 0;
+      Gcloud->points[i].b = 0;
+      Gcloud->points[i].x = 0;
+      Gcloud->points[i].y = 0;
+      Gcloud->points[i].z = 0;
+	
+    }
+  }
+
+
+
+  for (size_t i=0; i < cloud_filtered->points.size();++i)//blue extraction
+  {
+    if (!(cloud_filtered->points[i].b > cloud_filtered->points[i].g && cloud_filtered->points[i].b > cloud_filtered->points[i].r))///Bounding
+    {
+      Bcloud->points[i].r = 0;
+      Bcloud->points[i].g = 0;
+      Bcloud->points[i].b = 0;
+      Bcloud->points[i].x = 0;
+      Bcloud->points[i].y = 0;
+      Bcloud->points[i].z = 0;
+    }
+  }
+
+ */
+  
+  
+
+std::cerr<<"Waiting 1 "<<std::endl;
+
+
+  
+ // Creating the KdTree object for the search method of the extraction
+  pcl::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::KdTreeFLANN<pcl::PointXYZRGB>);
+  tree->setInputCloud ( cloud_filtered);
 
   std::vector<pcl::PointIndices> cluster_indices;
-  pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-  ec.setClusterTolerance (0.02); // 2cm
+  pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
+  ec.setClusterTolerance (0.01); // 1cm /// decreasing makes more clusters
   ec.setMinClusterSize (100);
-  ec.setMaxClusterSize (40000);
+  ec.setMaxClusterSize (4000);
   ec.setSearchMethod (tree);
-  ec.setInputCloud( cloud_filtered);
+  ec.setInputCloud(  cloud_filtered);
   ec.extract (cluster_indices);
 
   int j = 0;
 
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
   {
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZRGB>);
     
     for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
-      cloud_cluster->points.push_back (cloud_filtered->points[*pit]); //*
+      cloud_cluster->points.push_back ( cloud_filtered->points[*pit]); //*
     
     cloud_cluster->width = cloud_cluster->points.size ();
     cloud_cluster->height = 1;
@@ -185,8 +293,10 @@ int  main (int argc, char** argv)
     j++;
   }
 
-
-	viewer.showCloud(cloudF, "Full cloud");
+	std::cerr<<"Waiting 3 "<<std::endl;
+	pcl::visualization::CloudViewer viewer("Cloud Viewer");
+	//viewer.showCloud(cloudF, "Full cloud");
+	
   	viewer.runOnVisualizationThreadOnce (label);
 	
  char c_name[] = "Cloud No: ";
@@ -194,13 +304,13 @@ int  main (int argc, char** argv)
  std::cerr<<"Total Clusters: "<<j<<std::endl;
 
 	for (size_t k = 0; k < j ; k++)
-	{
+	{	
 		std::sprintf(cloud_name,"%s%d",c_name,k);
 		viewer.showCloud(clouds[k], cloud_name);
 
 	}
 
-
+std::cin.get();
   int xx, yy;
   while(1)
   {
@@ -212,7 +322,9 @@ int  main (int argc, char** argv)
 		
 		cout << "Finding distance...";
 		cout << findDistance(clouds[xx], clouds[yy]) << endl;
-		
+ while (!viewer.wasStopped ())
+  {
+  }		
 		viewer.runOnVisualizationThreadOnce (viewerOneOff);
   }
 
