@@ -160,34 +160,28 @@ int  main (int argc, char** argv)
 
 
 ////////////////////////Table has been awesomely removed ///////////////////////
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr Rcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr Gcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr Bcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr Ycloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr Rcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr Gcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr Bcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr Ycloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 
 	//Rcloud=cloud_filtered;
 	//Gcloud=cloud_filtered;
 	//Bcloud=cloud_filtered;
 	//Rcloud->points.resize(cloud_filtered->height * cloud_filtered->width);
 
-std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl;
-   for (size_t i=0; i < cloud_filtered->points.size();++i)//red and yellow extraction
-  {
-    //if (!(int(cloud_filtered->points[i].r) > int(cloud_filtered->points[i].g) && int(cloud_filtered->points[i].r) > int(cloud_filtered->points[i].b)))///Bounding
-    //{
-      
-     	//cloud_filtered->points[i].r = 0;
-      //cloud_filtered->points[i].g = 0;
-     // cloud_filtered->points[i].b = 0;
-	cloud_filtered->erase(cloud_filtered->begin() + i);
- 
-	
-  //  }
-
+	std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl;
+	for (pcl::PointCloud<pcl::PointXYZRGB>::iterator it=cloud_filtered->begin(); it != cloud_filtered->end(); /* it gets updated conditionally */ )
+	{
+		if ( (*it).r > (*it).g && (*it).r > (*it).b ) 
+		{
+			cloud_filtered->erase(it);
+		} else {
+			it++;
+		}
   }
 
-   std::cout << "PointCloud after Red filtering: " << cloud_filtered->points.size ()  << " data points." << std::endl;
+  std::cout << "PointCloud after Red filtering: " << cloud_filtered->points.size ()  << " data points." << std::endl;
 
   Ycloud  =  Rcloud;
 
