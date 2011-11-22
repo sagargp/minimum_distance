@@ -7,6 +7,7 @@ find_package(PCL 1.2 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
+add_definitions(-g)
 
 add_executable (Distance Distance.cpp)
 target_link_libraries (Distance ${PCL_LIBRARIES})
