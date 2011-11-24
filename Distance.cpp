@@ -80,34 +80,37 @@ void label (pcl::visualization::PCLVisualizer& viewer)
 
 void toHSV(int ri, int gi, int bi, float *h, float *s, float *v)
 {
-	float r = ri/255.0;
-	float g = gi/255.0;
-	float b = bi/255.0;
+	float r, g, b;
+	r = ri/255.0;
+	g = gi/255.0;
+	b = bi/255.0;
 
-	float M = MAX( MAX(r, g), b);
-	float m = MIN( MIN(r, g), b);
+	float mn, mx, delta;
+	mn = MIN(r, MIN(g, b));
+	mx = MAX(r, MAX(g, b));
 
-	float C = M - m;
+	*v = mx;
+	delta = mx - mn;
 
-	if (C == 0)
-		*h = 0;
-	else if (M == r)
-		*h = ((g-b)/C);
-	else if (M == g)
-		*h = (b-r)/C + 2;
-	else if (M == g)
-		*h = (r-g)/C + 4;
-
-	*h *= 60.0; 
-	*v = M;
-
-	if (C == 0)
-		*s = 0;
+	if (mx != 0)
+		*s = delta/mx;
 	else
-		*s = C/(*v);
+	{
+		*s = 0;
+		*h = -1;
+		return;
+	}
 
+	if (r == mx)
+		*h = (g-b)/delta;
+	else if (g == mx)
+		*h = 2 + (b-r)/delta;
+	else
+		*h = 4 + (r-g)/delta;
+
+	*h *= 60;
 	if (*h < 0)
-		*h += 360.0;
+		*h += 360;
 }
 
 void normalSegment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input, 
@@ -117,23 +120,6 @@ void normalSegment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr YCloud, 
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr OCloud)
 {
-	// pseudocode
-	//t = table of mean/variance of each color
-	//for Point p in input:
-	//	norm_g = normal_distribution(t[redmean], t[redstd]);
-	//	prob_g = norm_r.cdf(p+0.5) - norm_r.cdf(p-0.5);
-	//	
-	//	norm_b = normal_distribution(t[redmean], t[redstd]);
-	//	prob_b = norm_r.cdf(p+0.5) - norm_r.cdf(p-0.5);
-	//	
-	//	norm_y = normal_distribution(t[redmean], t[redstd]);
-	//	prob_y = norm_r.cdf(p+0.5) - norm_r.cdf(p-0.5);
-	//	
-	//	norm_o = normal_distribution(t[redmean], t[redstd]);
-	//	prob_o = norm_r.cdf(p+0.5) - norm_r.cdf(p-0.5);
-
-	//	color = highest of prob_x
-
 	//color		h					s					(mean, std)
 	//red		
 	//green		116.964, 36.432		0.8780, 0.1616
@@ -141,11 +127,21 @@ void normalSegment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input,
 	//yellow	037.188, 6.948		0.9835, 0.0347
 	//orange	012.361, 7.1757		0.9822, 0.0813	
 
+	double r1h[] = {0.00000, 15.000};
+	double r2h[] = {359.00000, 15.000};
+	
 	double gh[] = {116.964, 36.432};
-	double bh[] = {229.644, 5.2920};
+	//double gh[] = {120.00, 15.000};
+	
+	//double bh[] = {229.644, 5.2920};
+	double bh[] = {235.00, 25.2920};
+	
 	double yh[] = {037.188, 6.9480};
+	//double yh[] = {60.00, 8.000};
+	
 	double oh[] = {012.361, 7.1757};
 
+	double rs[] = {0.9547, 0.0778};
 	double gs[] = {0.8780, 0.1616};
 	double bs[] = {0.8527, 0.1730};
 	double ys[] = {0.9835, 0.0347};
@@ -155,8 +151,6 @@ void normalSegment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input,
 	{
 		float h, s, v;
 		toHSV(input->points[i].r, input->points[i].g, input->points[i].b, &h, &s, &v);
-
-		//printf("%d: (%d, %d, %d) -> (%f, %f, %f)\n", i, input->points[i].r, input->points[i].g, input->points[i].b, h, s, v);
 		
 		if (h != h) // check if h is NaN
 		{
@@ -164,53 +158,68 @@ void normalSegment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input,
 			continue;
 		}
 
+		/* calculate the probability that this point is red */
+		boost::math::normal_distribution<double> norm_r1h(r1h[0], r1h[1]);
+		double prob_r1h = boost::math::cdf(norm_r1h, h+0.5) - boost::math::cdf(norm_r1h, h-0.5);
+
+		boost::math::normal_distribution<double> norm_r2h(r2h[0], r2h[1]);
+		double prob_r2h = boost::math::cdf(norm_r2h, h+0.5) - boost::math::cdf(norm_r2h, h-0.5);
+		
+		boost::math::normal_distribution<double> norm_rs(rs[0], rs[1]);
+		double prob_rs = boost::math::cdf(norm_rs, s+0.05) - boost::math::cdf(norm_rs, s-0.05);
+
+		double prob_r = (prob_r1h + prob_r2h) * prob_rs;
+
 		/* calculate the probability that this point is green */
 		boost::math::normal_distribution<double> norm_gh(gh[0], gh[1]);
-		double prob_gh = boost::math::cdf(norm_gh, h);
+		double prob_gh = boost::math::cdf(norm_gh, h+0.5) - boost::math::cdf(norm_gh, h-0.5);
 
 		boost::math::normal_distribution<double> norm_gs(gs[0], gs[1]);
-		double prob_gs = boost::math::cdf(norm_gs, s);
+		double prob_gs = boost::math::cdf(norm_gs, s+0.05) - boost::math::cdf(norm_gs, s-0.05);
 
 		double prob_g = prob_gh * prob_gs;
 
 		/* calculate the probability that this point is blue */
 		boost::math::normal_distribution<double> norm_bh(bh[0], bh[1]);
-		double prob_bh = boost::math::cdf(norm_bh, h);
+		double prob_bh = boost::math::cdf(norm_bh, h+0.5) - boost::math::cdf(norm_bh, h-0.5);
 
 		boost::math::normal_distribution<double> norm_bs(bs[0], bs[1]);
-		double prob_bs = boost::math::cdf(norm_bs, s);
+		double prob_bs = boost::math::cdf(norm_bs, s+0.05) - boost::math::cdf(norm_bs, s-0.05);
 
 		double prob_b = prob_bh * prob_bs;
 
 		/* calculate the probability that this point is yellow */
 		boost::math::normal_distribution<double> norm_yh(yh[0], yh[1]);
-		double prob_yh = boost::math::cdf(norm_yh, h);
+		double prob_yh = boost::math::cdf(norm_yh, h+0.5) - boost::math::cdf(norm_yh, h-0.5);
 
 		boost::math::normal_distribution<double> norm_ys(ys[0], ys[1]);
-		double prob_ys = boost::math::cdf(norm_ys, s);
+		double prob_ys = boost::math::cdf(norm_ys, s+0.05) - boost::math::cdf(norm_ys, s-0.05);
 
 		double prob_y = prob_yh * prob_ys;
 
 		/* calculate the probability that this point is yellow */
 		boost::math::normal_distribution<double> norm_oh(oh[0], oh[1]);
-		double prob_oh = boost::math::cdf(norm_oh, h);
+		double prob_oh = boost::math::cdf(norm_oh, h+0.5) - boost::math::cdf(norm_oh, h-0.5);
 
 		boost::math::normal_distribution<double> norm_os(os[0], os[1]);
-		double prob_os = boost::math::cdf(norm_os, s);
+		double prob_os = boost::math::cdf(norm_os, s+0.05) - boost::math::cdf(norm_os, s-0.05);
 
 		double prob_o = prob_oh * prob_os;
 
 		// now assign to buckets
-		if (prob_g > prob_b && prob_g > prob_y && prob_g > prob_o)
+		if (prob_r > prob_b && prob_r > prob_y && prob_r > prob_o && prob_r > prob_g)
+			RCloud->push_back(input->points[i]);
+		
+		else if (prob_g > prob_b && prob_g > prob_y && prob_g > prob_o && prob_g > prob_r)
 			GCloud->push_back(input->points[i]);
 
-		else if (prob_b > prob_g && prob_b > prob_y && prob_b > prob_o)
+		else if (prob_b > prob_g && prob_b > prob_y && prob_b > prob_o && prob_b > prob_r)
 			BCloud->push_back(input->points[i]);
 
-		else if (prob_y > prob_g && prob_y > prob_b && prob_y > prob_o)
+		else if (prob_y > prob_g && prob_y > prob_b && prob_y > prob_o && prob_y > prob_r)
 			YCloud->push_back(input->points[i]);
 
-		else if (prob_o > prob_g && prob_o > prob_b && prob_o > prob_y)
+		else if (prob_o > prob_g && prob_o > prob_b && prob_o > prob_y && prob_o > prob_r)
 			OCloud->push_back(input->points[i]);
 	}
 }
@@ -377,7 +386,7 @@ int  main (int argc, char** argv)
 	vg.setLeafSize (0.001f, 0.001f, 0.001f);
 	vg.filter (*cloud_filtered);
 
-	std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl;
+	std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size()  << " data points." << std::endl;
 
 	//pcl::visualization::CloudViewer viewer("Cloud Viewer");
 	// Create the segmentation object for the planar model and set all the parameters
@@ -398,7 +407,7 @@ int  main (int argc, char** argv)
 	while (cloud_filtered->points.size () > 0.30* nr_points)
 	{
 		seg.setInputCloud(cloud_filtered);
-		seg.segment (*inliers, *coefficients); //*
+		seg.segment (*inliers, *coefficients); 
 
 		if (inliers->indices.size () == 0)
 		{
@@ -424,20 +433,35 @@ int  main (int argc, char** argv)
 	}
 
 	// color segmentation
+	//
+	// define this vector so we can operate over all colored point clouds in a loop
 	std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> coloredClouds(5);
+
+	// instantiate the colored clouds
 	for (int i = 0; i < 5; i++)
 		coloredClouds[i] = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
 
-	// just give the colored clouds handy names
+	// alias the colored clouds with names 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr Rcloud = coloredClouds[0];
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr Gcloud = coloredClouds[1];
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr Bcloud = coloredClouds[2];
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr Ycloud = coloredClouds[3];
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr Ocloud = coloredClouds[4];
 
-	// color segment each cluster found from the filtered cloud
+	// color segment the cloud using min/max ranges
 	//colorSegment(cloud_filtered, Rcloud, Gcloud, Bcloud, Ycloud, Ocloud);
+
+	// color segment the cloud using a normal distrbuted color model
 	normalSegment(cloud_filtered, Rcloud, Gcloud, Bcloud, Ycloud, Ocloud);
+
+	// temp: display the colored clouds one after another
+	pcl::visualization::CloudViewer viewer("Cloud Viewer");
+	for (int i = 0; i < coloredClouds.size(); i++)
+	{
+		cout << "Showing cloud #" << i << endl;
+		viewer.showCloud(coloredClouds[i]);
+		cin.get();
+	}
 
 	// empty out the lists before re-filling them with colorful points 
 	clouds.clear();
@@ -453,17 +477,11 @@ int  main (int argc, char** argv)
 		cout << "Clustering colored cloud #" << i << " which has " << coloredClouds[i]->size() << " points" << endl;
 		num_clusters += clusterExtraction(coloredClouds[i], &clouds, &labels);
 	}
+
 	// display what we've found	
 	std::cerr<<"Waiting 3 "<<std::endl;
-	pcl::visualization::CloudViewer viewer("Cloud Viewer");
 
 	viewer.runOnVisualizationThreadOnce(label);
-
-	for (int i = 0; i < coloredClouds.size(); i++)
-	{
-		viewer.showCloud(coloredClouds[i]);
-		cin.get();
-	}
 
 	char c_name[] = "Cloud No: ";
 	char cloud_name [20];
