@@ -130,8 +130,8 @@ void normalSegment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input,
 	double r1h[] = {0.00000, 15.000};
 	double r2h[] = {359.00000, 15.000};
 	
-	double gh[] = {116.964, 36.432};
-	//double gh[] = {120.00, 15.000};
+	//double gh[] = {116.964, 36.432};
+	double gh[] = {120.00, 25.000};
 	
 	//double bh[] = {229.644, 5.2920};
 	double bh[] = {235.00, 25.2920};
@@ -142,7 +142,7 @@ void normalSegment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input,
 	double oh[] = {012.361, 7.1757};
 
 	double rs[] = {0.9547, 0.0778};
-	double gs[] = {0.8780, 0.1616};
+	double gs[] = {0.8728, 0.1598};
 	double bs[] = {0.8527, 0.1730};
 	double ys[] = {0.9835, 0.0347};
 	double os[] = {0.9822, 0.0813};
@@ -207,20 +207,23 @@ void normalSegment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input,
 		double prob_o = prob_oh * prob_os;
 
 		// now assign to buckets
-		if (prob_r > prob_b && prob_r > prob_y && prob_r > prob_o && prob_r > prob_g)
+		if (prob_r > 0.001 && prob_r > prob_b && prob_r > prob_y && prob_r > prob_o && prob_r > prob_g)
 			RCloud->push_back(input->points[i]);
 		
-		else if (prob_g > prob_b && prob_g > prob_y && prob_g > prob_o && prob_g > prob_r)
+		else if (prob_g > 0.001 && prob_g > prob_b && prob_g > prob_y && prob_g > prob_o && prob_g > prob_r)
 			GCloud->push_back(input->points[i]);
 
-		else if (prob_b > prob_g && prob_b > prob_y && prob_b > prob_o && prob_b > prob_r)
+		else if (prob_b > 0.001 && prob_b > prob_g && prob_b > prob_y && prob_b > prob_o && prob_b > prob_r)
 			BCloud->push_back(input->points[i]);
 
-		else if (prob_y > prob_g && prob_y > prob_b && prob_y > prob_o && prob_y > prob_r)
+		else if (prob_y > 0.001 && prob_y > prob_g && prob_y > prob_b && prob_y > prob_o && prob_y > prob_r)
 			YCloud->push_back(input->points[i]);
 
-		else if (prob_o > prob_g && prob_o > prob_b && prob_o > prob_y && prob_o > prob_r)
+		else if (prob_o > 0.001 && prob_o > prob_g && prob_o > prob_b && prob_o > prob_y && prob_o > prob_r)
 			OCloud->push_back(input->points[i]);
+
+		else
+			cout << i << " didn't classify" << endl;
 	}
 }
 
