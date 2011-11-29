@@ -6,7 +6,8 @@ Sagar Pandya
 
 Given a point cloud of Duplo blocks, find the "minimum distance" between any given pair. (The minimum distance is the shortest distance between the blocks, not the distance bewteen their center points). The input point cloud comes from an XBox Kinect sensor mounted on top of a PR2. We assume that no blocks of the same color are touching.
 
-Overview of algorithm:
+Overview of algorithm:   
+
 * Read point cloud
 * Apply voxel grid filter to downsample the cloud
 * Apply planar segmentation to remove the table
