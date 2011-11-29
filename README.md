@@ -1,6 +1,6 @@
-Ankur Agarwal
-Farrukh Ali
-Sagar Pandya
+Ankur Agarwal   
+Farrukh Ali   
+Sagar Pandya   
 
 ### USC CSCI 547 Sensing and Planning in Robotics project, F2011
 
@@ -20,20 +20,19 @@ Distance calculation between a pair of clouds was done by creating a KD tree for
 
 Finally our code had to be modified slightly to become a ROS node for the PR2. The perception_pcl stack was used to publish a PCD file as a point cloud sensor message. Our node subscribed to that data, conveted it to a PCL point cloud object, and then operated on it as described above. Visualization markers were used to identify cloud IDs in RVIZ.
 
-To run the ROS node, first you have to build it:
-
-> $ rosmake min_dist_ros
+To run the ROS node, first you have to build it:   
+`$ rosmake min_dist_ros`
 
 Then you'll need four terminals:
 
-Terminal 1:
-> $ roscore
+Terminal 1:   
+`$ roscore`
 
-Terminal 2:
-> $ rosrun pcl_ros pcd_to_pointcloud /path/to/a/pcd/file 0.1
+Terminal 2:   
+`$ rosrun pcl_ros pcd_to_pointcloud /path/to/a/pcd/file 0.1`
 
-Terminal 3:
-> $ rosrun rviz rviz
+Terminal 3:   
+`$ rosrun rviz rviz`
 
-Terminal 4:
-> $ rosrun min_dist_ros min_dist_ros input:=cloud_pcd
+Terminal 4:   
+`$ rosrun min_dist_ros min_dist_ros input:=cloud_pcd`
